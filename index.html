@@ -1,0 +1,324 @@
+<!--
+https://github.com/cgloeckner/html-map-print
+
+Copyright (c) Christian Glöckner
+License: MIT (see LICENSE for details)
+//-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg&callback=initMap&v=weekly" defer></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.1.slim.min.js"></script>
+    <script>
+<!--
+let mapstyle = [
+    {
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#f5f5f5"
+            }
+        ]
+    },
+    {
+        "elementType": "geometry.fill",
+        "stylers": [
+            {
+                "color": "#eeeeec"
+            }
+        ]
+    },
+    {
+        "elementType": "labels",
+        "stylers": [
+            {
+                "visibility": "off"
+            }
+        ]
+    },
+    {
+        "elementType": "labels.icon",
+        "stylers": [
+            {
+                "visibility": "off"
+            }
+        ]
+    },
+    {
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#616161"
+            }
+        ]
+    },
+    {
+        "elementType": "labels.text.stroke",
+        "stylers": [
+            {
+                "color": "#f5f5f5"
+            }
+        ]
+    },
+    {
+        "featureType": "administrative.land_parcel",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#bdbdbd"
+            }
+        ]
+    },
+    {
+        "featureType": "poi",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#eeeeee"
+            }
+        ]
+    },
+    {
+        "featureType": "poi",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#757575"
+            }
+        ]
+    },
+    {
+        "featureType": "poi.park",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#e5e5e5"
+            }
+        ]
+    },
+    {
+        "featureType": "poi.park",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#9e9e9e"
+            }
+        ]
+    },
+    {
+        "featureType": "road",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#ffffff"
+            }
+        ]
+    },
+    {
+        "featureType": "road",
+        "elementType": "geometry.stroke",
+        "stylers": [
+            {
+                "color": "#000000"
+            },
+            {
+                "visibility": "on"
+            }
+        ]
+    },
+    {
+        "featureType": "road.arterial",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#757575"
+            }
+        ]
+    },
+    {
+        "featureType": "road.highway",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#dadada"
+            }
+        ]
+    },
+    {
+        "featureType": "road.highway",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#616161"
+            }
+        ]
+    },
+    {
+        "featureType": "road.local",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#9e9e9e"
+            }
+        ]
+    },
+    {
+        "featureType": "transit.line",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#e5e5e5"
+            }
+        ]
+    },
+    {
+        "featureType": "transit.station",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#eeeeee"
+            }
+        ]
+    },
+    {
+        "featureType": "water",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#c9c9c9"
+            }
+        ]
+    },
+    {
+        "featureType": "water",
+        "elementType": "geometry.fill",
+        "stylers": [
+            {
+                "color": "#ffffff"
+            }
+        ]
+    },
+    {
+        "featureType": "water",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#9e9e9e"
+            }
+        ]
+    }
+]
+
+let map;
+
+function initMap() {
+    $('#map').height(window.innerHeight-25)
+    
+    // query last position
+    let lat = parseFloat(localStorage.getItem('lat'))
+    let lng = parseFloat(localStorage.getItem('lng'))
+    let zoom = parseFloat(localStorage.getItem('zoom'))
+
+    if (isNaN(zoom)) {
+        // default zoom
+        zoom = 10
+    }
+
+    if (isNaN(lat) || isNaN(lng)) {
+        console.debug('Query user location')
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(p) {
+                // use user location as map start
+                localStorage.setItem('lat', p.coords.latitude)
+                localStorage.setItem('lng', p.coords.longitude)
+
+                onLoad(p.coords.latitude, p.coords.longitude, zoom)
+            })
+        } else {
+            console.debug('Geolocation is not supported by this browser')
+            // use default position
+            localStorage.setItem('lat', 0.0)
+            localStorage.setItem('lng', 0.0)
+            
+            onLoad(0.0, 0.0, zoom)
+        }
+    } else {
+        console.debug(`Loaded location ${lat} and ${lng}`)
+
+        onLoad(lat, lng, zoom)
+    }
+}
+
+function onLoad(lat, lng, zoom) {
+    map = new google.maps.Map($('#map')[0], {
+        center: { lat: lat, lng: lng},
+        zoom: zoom,
+        disableDefaultUI: true,
+        styles: mapstyle
+    })
+}
+
+function onDrag() {
+    // save map data
+    localStorage.setItem('lat',  map.center.lat())
+    localStorage.setItem('lng',  map.center.lng())
+}
+
+function onZoom() {
+    // save map data
+    localStorage.setItem('zoom', map.zoom)
+}
+
+    
+function onResize() {
+    $('#map').height(window.innerHeight-25)
+}
+
+function onSave() {
+    html2canvas($('#map')[0], {
+        useCORS: true
+    }).then(function(canvas) {
+        let a = document.createElement('a')
+        a.download = 'map.jpg'
+        a.href     = canvas.toDataURL("image/jpeg")
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a) 
+    })
+}
+
+//-->
+    </script>  
+    <style>
+div.footer {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    height: 25px;
+    width: 100%;
+    text-align: right;
+}
+
+div.footer > span {
+    color: white;
+}
+    </style>
+    <title>HTML MapPrint</title>
+</head>
+
+<body onresize="onResize()">
+<div>
+    <div id="map" onMouseUp="onDrag()" onWheel="onZoom()"></div>
+
+    <div class="footer">
+        <span>Go fullscreen (e.g. F11) before saving! &mdash; </span><button onClick="onSave()">Save as JPEG</button>
+    </div>
+</div>
+
+</body>
+
+</html>
